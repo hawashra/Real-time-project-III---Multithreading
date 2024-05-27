@@ -97,11 +97,8 @@ void fork_production_lines(int num) {
             exit(0);
         } else {
 
-
         }
 
-
     }
-
 
 }
