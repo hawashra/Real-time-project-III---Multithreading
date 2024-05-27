@@ -81,24 +81,3 @@ void closeSharedMemory(int shm_fd, void* ptr, int size) {
     munmap(ptr, size);
     close(shm_fd);
 }
-
-
-container* openSharedContainers(){
-     int shm_fd = openSharedMemory(SHM_CONTAINERS);
-    ftruncateSharedMemory(shm_fd, SHM_SIZE);
-    // Map the shared memory segment
-    container*  ptr = mapSharedMemory(shm_fd, SHM_SIZE);
-    return ptr;
-}
-
-
-
-sharedCount* openSharedCount() {
-    int shm_fd = openSharedMemory(SHM_COUNTS);
-    ftruncateSharedMemory(shm_fd, sizeof(sharedCount));
-    // Map the shared memory segment
-    sharedCount*  ptr = mapSharedMemory(shm_fd, sizeof(sharedCount));
-    //initialize the shared count
-    ptr->numberOfContainers = 0;
-    return ptr;
-}
