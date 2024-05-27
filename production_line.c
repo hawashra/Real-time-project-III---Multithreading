@@ -124,7 +124,7 @@ void* employee_routine_pill(void* arg)
 
         sleep(3);
     }
-    
+
     return (void*) 0;
 }
 
@@ -150,8 +150,7 @@ int main(int argc, char const *argv[])
     printf("Hello from production line\n");
 
 
-    int fd_counts = openSharedMemory(SHM_VALID_LIQUID_MEDICINE_PRODUCED_COUNT);
-    ftruncateSharedMemory(fd_counts, sizeof(struct counts));
+    int fd_counts = openSharedMemory(SHM_COUNTS);
 
 
     medicine_queue = (MedicineQueue*)malloc(sizeof(MedicineQueue));
