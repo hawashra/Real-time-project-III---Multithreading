@@ -1,5 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include "includes/include.h"
+#include "includes/functions.c"
 
 int num_medicine_types;
 int num_production_lines;
@@ -17,13 +17,18 @@ int max_simulation_run_time_minutes;
 
 void read_userdefined_data(char* filename);
 void print_userdefined_data();
+void fork_production_lines(int num);
+
+pid_t *production_lines_pids;
 
 int main(int argc, char *argv[])
 {
     read_userdefined_data(argv[1]);
     print_userdefined_data();
 
-    
+
+    fork_production_lines(num_production_lines);
+
 
 
 
@@ -79,4 +84,29 @@ void print_userdefined_data()
     printf("Maximum out of spec bottled medicine: %d\n", max_out_of_spec_bottled_medicine);
     printf("Maximum out of spec pill based medicine: %d\n", max_out_of_spec_pill_based_medicine);
     printf("Maximum simulation run time in minutes: %d\n", max_simulation_run_time_minutes);
+}
+
+
+void fork_production_lines(int num) {
+
+    pid_t pid;
+
+    for (int i = 0; i  < num; i++) {
+
+        pid = fork();
+        assert(pid >= 0);
+
+        if (pid == 0) {
+            // Child process
+            printf("Child process %d\n", getpid());
+            exit(0);
+        } else {
+
+
+        }
+
+
+    }
+
+
 }
