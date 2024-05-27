@@ -20,6 +20,7 @@
 #include <semaphore.h> //posix semaphores
 #include <sys/msg.h>
 #include <pthread.h>
+#include <assert.h>
 #endif
 
 //some enums
@@ -29,3 +30,5 @@
 
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #define min(a, b) ((a) < (b) ? (a) : (b))
+
+
