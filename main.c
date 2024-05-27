@@ -26,14 +26,9 @@ int main(int argc, char *argv[])
     read_userdefined_data(argv[1]);
     print_userdefined_data();
 
-
     fork_production_lines(num_production_lines);
 
 
-
-
-
-    
     return EXIT_SUCCESS;
 }
 
