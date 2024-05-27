@@ -2,6 +2,8 @@
 #include "include.h"
 #endif
 
+
+
 #define BLUE(string) "\033[1;34m" string "\x1b[0m"
 #define RED(string) "\033[1;31m" string "\x1b[0m"
 #define GREEN(string) "\033[1;32m" string "\x1b[0m"
@@ -13,7 +15,7 @@
 #define PURPLE(string) "\033[1;35m" string "\x1b[0m"
 
 
-void my_pause(double seconds){
+void my_pause(double seconds) {
     struct timespec ts, rem;
     ts.tv_sec = (time_t) seconds;
     ts.tv_nsec = (long) ((seconds - ts.tv_sec) * 1e9);
@@ -33,6 +35,7 @@ int set_handler(struct sigaction *sa, void (*sa_handler1)(int), void(*sa_sigacti
 
     else {
         sa->sa_sigaction = sa_sigaction1;
+
         sa->sa_flags = SA_SIGINFO;
     }
 
@@ -44,8 +47,6 @@ int set_handler(struct sigaction *sa, void (*sa_handler1)(int), void(*sa_sigacti
 int generateRandomNumber(int min, int max) {
     return min + rand() % (max - min + 1);
 }
-
-
 
 int openSharedMemory(char* name) {
     int shm_fd = shm_open(name, O_CREAT | O_RDWR, 0666); 
@@ -81,3 +82,4 @@ void closeSharedMemory(int shm_fd, void* ptr, int size) {
     munmap(ptr, size);
     close(shm_fd);
 }
+

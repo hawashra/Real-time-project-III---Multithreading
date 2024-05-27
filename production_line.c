@@ -19,12 +19,17 @@ int prob_color_size_correct;
 int prob_expiry_date_correct;
 int production_time;
 
+struct counts* counts_ptr_shm;
+
 //define the queue 
 MedicineQueue *medicine_queue;
 
 
 //define the mutex
 pthread_mutex_t medicine_queue_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond_medicine_queue_not_empty = PTHREAD_COND_INITIALIZER;
+
+
 //signal handler for the ctrl c 
 void exit_handler(int signum){
     makeMedicineQueueEmpty(medicine_queue);
@@ -33,7 +38,7 @@ void exit_handler(int signum){
 }
 
 //signal handler produce medicine
-void produce_medicine(int signum){
+void produce_medicine(int signum) {
 
     UnprocessedMedicine medicine;
     medicine.medicine_type = generateRandomNumber(1, num_medicine_types);
@@ -56,15 +61,71 @@ void produce_medicine(int signum){
     alarm(production_time);
 }
 
-void* employee_routine(void* arg)
+void* employee_routine_liquid(void* arg)
 {
     while (1)
     {
-        printf("Employee %ld is working\n", pthread_self());
-        my_pause(1);
+        pthread_mutex_lock(&medicine_queue_mutex);
+        while (medicine_queue->size == 0)
+        {
+
+            pthread_cond_wait(&cond_medicine_queue_not_empty, &medicine_queue_mutex);
+        }
+
+        // check if the medicine matches all the requirements
+        UnprocessedMedicine medicine = dequeueMedicine(medicine_queue);
+        if (medicine.liquid_level_correct && medicine.liquid_color_correct && medicine.medicine_sealed_correct && medicine.label_correct)
+        {
+            printf("Medicine is correct\n");
+            // increment the number of correct medicines in the shared memory
+            counts_ptr_shm->valid_liquid_medicine_produced_count++;
+        }
+        else
+        {
+            printf("Medicine is not correct\n");
+            // increment the number of incorrect medicines in the shared memory
+            counts_ptr_shm->invalid_liquid_medicine_produced_count++;
+        }
+        pthread_mutex_unlock(&medicine_queue_mutex);
+
+        sleep(3);
+    }
+
+    return (void*) 0;
+}
+
+
+void* employee_routine_pill(void* arg)
+{
+    while (1)
+    {
+        pthread_mutex_lock(&medicine_queue_mutex);
+        while (medicine_queue->size == 0)
+        {
+
+            pthread_cond_wait(&cond_medicine_queue_not_empty, &medicine_queue_mutex);
+        }
+        // check if the medicine matches all the requirements
+        UnprocessedMedicine medicine = dequeueMedicine(medicine_queue);
+        if (medicine.pill_count_correct && medicine.pill_color_size_correct && medicine.expiry_date_correct && medicine.label_correct)
+        {
+            printf("Medicine is correct\n");
+            // increment the number of correct medicines in the shared memory
+            counts_ptr_shm->valid_pill_medicine_produced_count++;
+        }
+        else
+        {
+            printf("Medicine is not correct\n");
+            // increment the number of incorrect medicines in the shared memory
+            counts_ptr_shm->invalid_pill_medicine_produced_count++;
+        }
+
+        pthread_mutex_unlock(&medicine_queue_mutex);
+
+        sleep(3);
     }
     
-    return NULL;
+    return (void*) 0;
 }
 
 int main(int argc, char const *argv[])
@@ -88,6 +149,11 @@ int main(int argc, char const *argv[])
     production_time = atoi (argv[11]);
     printf("Hello from production line\n");
 
+
+    int fd_counts = openSharedMemory(SHM_VALID_LIQUID_MEDICINE_PRODUCED_COUNT);
+    ftruncateSharedMemory(fd_counts, sizeof(struct counts));
+
+
     medicine_queue = (MedicineQueue*)malloc(sizeof(MedicineQueue));
     initializeMedicineQueue(medicine_queue);
 
@@ -97,11 +163,11 @@ int main(int argc, char const *argv[])
 
     alarm(production_time);
 
-    // employee_threads = (pthread_t*)malloc(employee_count * sizeof(pthread_t));
+    employee_threads = (pthread_t*)malloc(employee_count * sizeof(pthread_t));
 
     //innitialize the medicine queue
     sleep(5);
-    while(1){
+    while(1) {
         //print the size of the queue
         printf("Size of the queue: %d\n", medicine_queue->size);
         //print the rear of the queue
@@ -110,17 +176,16 @@ int main(int argc, char const *argv[])
 
     }
 
-    // for (int i = 0; i < employee_count; i++)
-    // {
-    //     pthread_create(&employee_threads[i], NULL, employee_routine, NULL);
-    // }
+    for (int i = 0; i < employee_count; i++)
+    {
+        pthread_create(&employee_threads[i], NULL, liquid_or_pill ? employee_routine_liquid : employee_routine_pill,
+        NULL);
+    }
 
-
-
-    // for (int i = 0; i < employee_count; i++)
-    // {
-    //     pthread_join(employee_threads[i], NULL);
-    // }
+    for (int i = 0; i < employee_count; i++)
+    {
+        pthread_join(employee_threads[i], NULL);
+    }
 
     makeMedicineQueueEmpty(medicine_queue);
     return 0;

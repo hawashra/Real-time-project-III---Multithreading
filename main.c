@@ -18,6 +18,8 @@ int max_simulation_run_time_minutes;
 int min_production_time;
 int max_production_time;
 
+struct counts* counts_ptr_shm;
+
 void read_userdefined_data(char* filename);
 void print_userdefined_data();
 void fork_production_lines(int num);
@@ -161,5 +163,19 @@ void fork_production_lines(int num) {
         }
 
     }
+
+}
+
+void initialize_shared_mems() {
+
+    int fd_cnts = openSharedMemory(SHM_COUNTS);
+    ftruncateSharedMemory(fd_cnts, sizeof(struct counts));
+    counts_ptr_shm = (struct counts*)mapSharedMemory(fd_cnts, sizeof(struct counts));
+    counts_ptr_shm->valid_liquid_medicine_produced_count = 0;
+    counts_ptr_shm->valid_pill_medicine_produced_count = 0;
+    counts_ptr_shm->invalid_liquid_medicine_produced_count = 0;
+    counts_ptr_shm->invalid_pill_medicine_produced_count = 0;
+
+
 
 }
