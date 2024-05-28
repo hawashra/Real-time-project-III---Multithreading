@@ -14,7 +14,7 @@ typedef struct{
     bool pill_count_correct;
     bool pill_expiry_date_correct;
 
-}UnprocessedMedicine;
+} UnprocessedMedicine;
 
 typedef struct MedicineNode {
     UnprocessedMedicine data;

@@ -1,6 +1,8 @@
 #include "includes/include.h"
 #include "includes/functions.c"
-//this is for the branch jehad
+
+#define QUEUE_SIZE_CHECK_INTERVAL 20
+
 int num_employee_per_production_line;
 int num_medicine_types;
 int num_production_lines;
@@ -17,19 +19,24 @@ int max_out_of_spec_pill_based_medicine;
 int max_simulation_run_time_minutes;
 int min_production_time;
 int max_production_time;
+int threshold_unprocessed_queue_size;
 
 struct counts* counts_ptr_shm;
 int* produced_counts_ptr_shm;
+int* queue_sizes_ptr_shm;
 
 sem_t *sem_counts;
 sem_t *sem_produced_counts;
 sem_t *sem_valid_invalid_counts;
+sem_t* sem_queue_sizes;
+
+int alarm_max_num_calls = 0;
 
 void read_userdefined_data(char* filename);
 void print_userdefined_data();
 void fork_production_lines(int num);
 void initialize_shared_mems_and_sems();
-
+void check_queue_sizes_handler();
 pid_t *production_lines_pids;
 
 
@@ -44,17 +51,20 @@ void exit_handler(int signum){
     free(production_lines_pids);
     closeSharedCounts(counts_ptr_shm);
     closeSharedProducedCounts(produced_counts_ptr_shm);
+    closeSharedQueueSizes(queue_sizes_ptr_shm);
     sem_close(sem_counts);
     sem_close(sem_produced_counts);
+    sem_close(sem_queue_sizes);
     sem_unlink(SEM_COUNTS);
     sem_unlink(SEM_PRODUCED_COUNTS);
-    
+    sem_unlink(SEM_QUEUE_SIZES);
+
     exit(0);
 }
 
 
 //termination handler
-struct sigaction sa_int;
+struct sigaction sa_int, sa_alrm;
 
 int main(int argc, char *argv[])
 {
@@ -65,11 +75,16 @@ int main(int argc, char *argv[])
     read_userdefined_data(argv[1]);
     // print_userdefined_data();
 
+    alarm_max_num_calls = (int) (max_simulation_run_time_minutes * 60 / QUEUE_SIZE_CHECK_INTERVAL);
+
     initialize_shared_mems_and_sems();
     sleep(2);
 
     production_lines_pids = (pid_t*)malloc(num_production_lines * sizeof(pid_t));
     fork_production_lines(num_production_lines);
+
+    set_handler(&sa_alrm, check_queue_sizes_handler, NULL, SIGALRM, 0);
+    alarm(QUEUE_SIZE_CHECK_INTERVAL);
 
     sleep(2);
 
@@ -127,7 +142,8 @@ void read_userdefined_data(char* filename)
         fscanf(fp, "%*[^:]: %d ", &max_out_of_spec_pill_based_medicine) != 1 ||
         fscanf(fp, "%*[^:]: %d ", &max_simulation_run_time_minutes) != 1||
         fscanf(fp, "%*[^:]: %d ", &min_production_time) != 1 ||
-        fscanf(fp, "%*[^:]: %d ", &max_production_time) != 1) {
+        fscanf(fp, "%*[^:]: %d ", &max_production_time) != 1 ||
+        fscanf(fp, "%*[^:]: %d ", &threshold_unprocessed_queue_size) != 1){
     
         perror("Error reading user-defined values");
         exit(1);
@@ -153,6 +169,7 @@ void print_userdefined_data()
     printf("Maximum simulation run time in minutes: %d\n", max_simulation_run_time_minutes);
     printf("Minimum production time: %d\n", min_production_time);
     printf("Maximum production time: %d\n", max_production_time);
+    printf("Threshold unprocessed queue size: %d\n", threshold_unprocessed_queue_size);
 }
 
 
@@ -178,6 +195,10 @@ void fork_production_lines(int num) {
         char prob_expiry_date_not_clear_arg[5];
         char production_time_arg[5];
         char max_packs_per_medicine_type_arg[20];
+        char threshold_unprocessed_queue_size_arg[20];
+        char production_line_index_arg[5];
+        char max_out_of_spec_bottled_medicine_arg[10];
+        char max_out_of_spec_pill_based_medicine_arg[10];
 
         //filling arguments
         sprintf(employee_count_arg, "%d", num_employee_per_production_line);
@@ -192,15 +213,25 @@ void fork_production_lines(int num) {
         sprintf(prob_expiry_date_not_clear_arg, "%d", prob_expiry_date_not_clear);
         sprintf(production_time_arg, "%d", production_time);
         sprintf(max_packs_per_medicine_type_arg, "%d", max_packs_per_medicine_type);
+        sprintf(threshold_unprocessed_queue_size_arg, "%d", threshold_unprocessed_queue_size);
+        sprintf(production_line_index_arg, "%d", i);
+        sprintf(max_out_of_spec_bottled_medicine_arg, "%d", max_out_of_spec_bottled_medicine);
+        sprintf(max_out_of_spec_pill_based_medicine_arg, "%d", max_out_of_spec_pill_based_medicine);
 
         pid = fork();
         assert(pid >= 0);
 
         if (pid == 0) {
+            
             // Child process
-            execlp("./production_line", "./production_line", employee_count_arg,liquid_or_pill_arg,num_medicine_types_arg,prob_liquid_level_out_of_range_arg,prob_liquid_color_mismatch_arg,prob_medicine_not_properly_sealed_arg, 
-            prob_incorrect_label_arg, prob_missing_pills_arg, prob_incorrect_pill_color_size_arg, prob_expiry_date_not_clear_arg,production_time_arg, max_packs_per_medicine_type_arg, NULL);
+            execlp("./production_line", "./production_line", employee_count_arg,liquid_or_pill_arg,
+            num_medicine_types_arg,prob_liquid_level_out_of_range_arg,prob_liquid_color_mismatch_arg,prob_medicine_not_properly_sealed_arg, 
+            prob_incorrect_label_arg, prob_missing_pills_arg, prob_incorrect_pill_color_size_arg,
+             prob_expiry_date_not_clear_arg,production_time_arg, max_packs_per_medicine_type_arg,
+            threshold_unprocessed_queue_size_arg,production_line_index_arg,max_out_of_spec_bottled_medicine_arg,
+            max_out_of_spec_pill_based_medicine_arg, NULL);
             exit(0);
+
         } else {
             production_lines_pids[i] = pid;
         }
@@ -221,10 +252,57 @@ void initialize_shared_mems_and_sems() {
     for (int i = 0; i < num_medicine_types; i++) {
         produced_counts_ptr_shm[i] = 0;
     }
-   
+
+    queue_sizes_ptr_shm = openSharedQueueSizes();
+    for (int i = 0; i < num_production_lines; i++) {
+        queue_sizes_ptr_shm[i] = 0;
+    }
+
     sem_counts = sem_open(SEM_COUNTS, O_CREAT, 0666, 1);
     sem_produced_counts = sem_open(SEM_PRODUCED_COUNTS, O_CREAT, 0666, 1);
+    sem_queue_sizes = sem_open(SEM_QUEUE_SIZES, O_CREAT, 0666, 1);
+
+}
+
+void check_queue_sizes_handler() {
+
+    int max_queue_size = 0;
+    int max_queue_size_index = 0;
+
+    int min_queue_size = INT_MAX;
+    int min_queue_size_index = 0;
+
+    // reading from the shared memory the queue sizes
+    sem_wait(sem_queue_sizes);
+    for (int i = 0; i < num_production_lines; i++) {
+
+        if (queue_sizes_ptr_shm[i] > max_queue_size) {
+            max_queue_size = queue_sizes_ptr_shm[i];
+            max_queue_size_index = i;
+        }
+        if (queue_sizes_ptr_shm[i] < min_queue_size) {
+            min_queue_size = queue_sizes_ptr_shm[i];
+            min_queue_size_index = i;
+        }
+
+    }
+    sem_post(sem_queue_sizes);
 
 
+    // send a signal to the production line with the maximum queue size if it exceeds the threshold
+    // (sending an employee from the least busy production line to the most busy production line)
+    if (max_queue_size > threshold_unprocessed_queue_size) {
+        kill(production_lines_pids[min_queue_size_index], SIGUSR1);
 
+        // send a signal to the production line with the minimum queue size.
+        kill(production_lines_pids[max_queue_size_index], SIGUSR2);
+    }
+
+    // the simulation time is up
+    if (--alarm_max_num_calls == 0) {
+        printf("Simulation time is up\n")
+        exit_handler(SIGINT);
+    }
+
+    alarm(QUEUE_SIZE_CHECK_INTERVAL);
 }
