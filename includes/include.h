@@ -42,3 +42,9 @@ struct counts {
 
 
 #define SHM_COUNTS "/shm_counts"
+#define SHM_PRODUCED_COUNTS "/shm_produced_counts"
+
+#define SEM_COUNTS "/sem_counts"
+#define SEM_PRODUCED_COUNTS "/sem_produced_counts"
+
+#define SHM_SIZE_COUNTS 32

@@ -8,10 +8,9 @@ probaility that an incorrect label is printed on the bottle (out of 100): 1
 probaility that the plastic container is missing pill(s) (out of 100): 2
 probaility that pills in the plastic container do not  have the correct color and/or size (out of 100): 2
 probaility that medicine expiry date is not printed clearly on the plastic container pack (out of 100): 1
-maximum number of medicine packs that can be produced for a medicine type: 100
+maximum number of medicine packs that can be produced for a medicine type: 20
 maximum number of bottled medicine that are out of spec: 50
 maximum number of pill-based medicine that are out of spec: 50
 maximum simulation run time (in minutes): 3
 minimum production time (for each production line, in seconds): 2
 maximum production time (for each production line, in seconds): 5
-

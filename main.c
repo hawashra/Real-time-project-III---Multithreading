@@ -19,19 +19,36 @@ int min_production_time;
 int max_production_time;
 
 struct counts* counts_ptr_shm;
+int* produced_counts_ptr_shm;
+
+sem_t *sem_counts;
+sem_t *sem_produced_counts;
+sem_t *sem_valid_invalid_counts;
 
 void read_userdefined_data(char* filename);
 void print_userdefined_data();
 void fork_production_lines(int num);
+void initialize_shared_mems_and_sems();
 
 pid_t *production_lines_pids;
 
 
 void exit_handler(int signum){
     printf(" is pressed\n");
+
     for (int i = 0; i < num_production_lines; i++) {
         kill(production_lines_pids[i], SIGINT);
     }
+
+    // free all dynamically allocated memory, close all semaphores and shared memory
+    free(production_lines_pids);
+    closeSharedCounts(counts_ptr_shm);
+    closeSharedProducedCounts(produced_counts_ptr_shm);
+    sem_close(sem_counts);
+    sem_close(sem_produced_counts);
+    sem_unlink(SEM_COUNTS);
+    sem_unlink(SEM_PRODUCED_COUNTS);
+    
     exit(0);
 }
 
@@ -48,8 +65,32 @@ int main(int argc, char *argv[])
     read_userdefined_data(argv[1]);
     // print_userdefined_data();
 
+    initialize_shared_mems_and_sems();
+    sleep(2);
+
     production_lines_pids = (pid_t*)malloc(num_production_lines * sizeof(pid_t));
     fork_production_lines(num_production_lines);
+
+    sleep(2);
+
+    while (1) {
+
+        printf(BLUE("-----------------Production Line Statistics-----------------") "\n");
+        for (int i = 0; i < num_medicine_types; i++) {
+            printf(BLUE("Type %d: %d") "\n" , i, produced_counts_ptr_shm[i]);
+        }
+
+        printf(GREEN("Valid liquid medicine produced: %d") "\n", counts_ptr_shm->valid_liquid_medicine_produced_count);
+        printf(GREEN("Valid pill medicine produced: %d") "\n", counts_ptr_shm->valid_pill_medicine_produced_count);
+        printf(RED("Invalid liquid medicine produced: %d") "\n", counts_ptr_shm->invalid_liquid_medicine_produced_count);
+        printf(RED("Invalid pill medicine produced: %d") "\n", counts_ptr_shm->invalid_pill_medicine_produced_count);
+
+        printf(BLUE("------------------------------------------------------------") "\n");
+
+
+        sleep(5);
+    }
+    
 
 
     for (int i = 0; i < num_production_lines; i++) {
@@ -136,6 +177,7 @@ void fork_production_lines(int num) {
         char prob_incorrect_pill_color_size_arg[5];
         char prob_expiry_date_not_clear_arg[5];
         char production_time_arg[5];
+        char max_packs_per_medicine_type_arg[20];
 
         //filling arguments
         sprintf(employee_count_arg, "%d", num_employee_per_production_line);
@@ -149,6 +191,7 @@ void fork_production_lines(int num) {
         sprintf(prob_incorrect_pill_color_size_arg, "%d", prob_incorrect_pill_color_size);
         sprintf(prob_expiry_date_not_clear_arg, "%d", prob_expiry_date_not_clear);
         sprintf(production_time_arg, "%d", production_time);
+        sprintf(max_packs_per_medicine_type_arg, "%d", max_packs_per_medicine_type);
 
         pid = fork();
         assert(pid >= 0);
@@ -156,7 +199,7 @@ void fork_production_lines(int num) {
         if (pid == 0) {
             // Child process
             execlp("./production_line", "./production_line", employee_count_arg,liquid_or_pill_arg,num_medicine_types_arg,prob_liquid_level_out_of_range_arg,prob_liquid_color_mismatch_arg,prob_medicine_not_properly_sealed_arg, 
-            prob_incorrect_label_arg, prob_missing_pills_arg, prob_incorrect_pill_color_size_arg, prob_expiry_date_not_clear_arg,production_time_arg,NULL);
+            prob_incorrect_label_arg, prob_missing_pills_arg, prob_incorrect_pill_color_size_arg, prob_expiry_date_not_clear_arg,production_time_arg, max_packs_per_medicine_type_arg, NULL);
             exit(0);
         } else {
             production_lines_pids[i] = pid;
@@ -166,15 +209,21 @@ void fork_production_lines(int num) {
 
 }
 
-void initialize_shared_mems() {
+void initialize_shared_mems_and_sems() {
 
-    int fd_cnts = openSharedMemory(SHM_COUNTS);
-    ftruncateSharedMemory(fd_cnts, sizeof(struct counts));
-    counts_ptr_shm = (struct counts*)mapSharedMemory(fd_cnts, sizeof(struct counts));
+    counts_ptr_shm = openSharedCounts();
     counts_ptr_shm->valid_liquid_medicine_produced_count = 0;
     counts_ptr_shm->valid_pill_medicine_produced_count = 0;
     counts_ptr_shm->invalid_liquid_medicine_produced_count = 0;
     counts_ptr_shm->invalid_pill_medicine_produced_count = 0;
+
+    produced_counts_ptr_shm = openSharedProducedCounts();
+    for (int i = 0; i < num_medicine_types; i++) {
+        produced_counts_ptr_shm[i] = 0;
+    }
+   
+    sem_counts = sem_open(SEM_COUNTS, O_CREAT, 0666, 1);
+    sem_produced_counts = sem_open(SEM_PRODUCED_COUNTS, O_CREAT, 0666, 1);
 
 
 

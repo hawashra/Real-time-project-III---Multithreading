@@ -2,8 +2,6 @@
 #include "include.h"
 #endif
 
-
-
 #define BLUE(string) "\033[1;34m" string "\x1b[0m"
 #define RED(string) "\033[1;31m" string "\x1b[0m"
 #define GREEN(string) "\033[1;32m" string "\x1b[0m"
@@ -83,3 +81,51 @@ void closeSharedMemory(int shm_fd, void* ptr, int size) {
     close(shm_fd);
 }
 
+struct counts* openSharedCounts() {
+    int shm_fd = openSharedMemory(SHM_COUNTS);
+
+    if (shm_fd == EXIT_FAILURE) {
+        exit(EXIT_FAILURE);
+    }
+
+    if (ftruncateSharedMemory(shm_fd, SHM_SIZE_COUNTS) == EXIT_FAILURE) {
+        exit(EXIT_FAILURE);
+    }
+
+    struct counts* counts_ptr_shm = (struct counts*) mapSharedMemory(shm_fd, SHM_SIZE_COUNTS);
+    if (counts_ptr_shm == NULL) {
+        exit(EXIT_FAILURE);
+    }
+
+    return counts_ptr_shm;
+}
+
+void closeSharedCounts(struct counts* counts_ptr_shm) {
+    int fd = shm_open(SHM_COUNTS, O_RDWR, 0666);
+    closeSharedMemory(fd, counts_ptr_shm, sizeof(struct counts));
+}
+
+int* openSharedProducedCounts() {
+
+    int shm_fd = openSharedMemory(SHM_PRODUCED_COUNTS);
+
+    if (shm_fd == EXIT_FAILURE) {
+        exit(EXIT_FAILURE);
+    }
+
+    if (ftruncateSharedMemory(shm_fd, SHM_SIZE_COUNTS) == EXIT_FAILURE) {
+        exit(EXIT_FAILURE);
+    }
+
+    int* produced_counts_ptr_shm = (int*) mapSharedMemory(shm_fd, SHM_SIZE_COUNTS);
+    if (produced_counts_ptr_shm == NULL) {
+        exit(EXIT_FAILURE);
+    }
+
+    return produced_counts_ptr_shm;
+}
+
+void closeSharedProducedCounts(int* produced_counts_ptr_shm) {
+    int fd = shm_open(SHM_PRODUCED_COUNTS, O_RDWR, 0666);
+    closeSharedMemory(fd, produced_counts_ptr_shm, SHM_SIZE_COUNTS);
+}
