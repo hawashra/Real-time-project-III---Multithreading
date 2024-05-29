@@ -12,7 +12,7 @@ pthread_t *employee_threads;
 bool* thread_should_exit; /* array of booleans to indicate if a thread should exit. Used to stop the threads when the program is terminated.
 or when we move an employee from that production line to another line. */
 
-#define EMPLOYEE_WORK_DELAY 3
+#define EMPLOYEE_WORK_DELAY 5
 
 int liquid_or_pill;
 int num_medicine_types;
@@ -159,7 +159,7 @@ void* employee_routine_liquid(void* arg)
         }
         pthread_mutex_unlock(&medicine_queue_mutex);
 
-        sleep(EMPLOYEE_WORK_DELAY);
+        my_pause(EMPLOYEE_WORK_DELAY);
     }
 
     return (void*) 0;
@@ -186,9 +186,9 @@ void* employee_routine_pill(void* arg)
         }
         // check if the medicine matches all the requirements
         UnprocessedMedicine medicine = dequeueMedicine(medicine_queue);
-        sem_wait(sem_counts);
-        counts_ptr_shm->invalid_liquid_medicine_produced_count++;
-        sem_post(sem_counts);
+        sem_wait(sem_queue_sizes);
+        queue_sizes_ptr_shm[production_line_index]--;
+        sem_post(sem_queue_sizes);
 
         if (medicine.pill_count_correct && medicine.pill_color_size_correct && medicine.expiry_date_correct && medicine.label_correct)
         {
@@ -305,7 +305,7 @@ void remove_employee_from_production_line_handler_usr1()
 {
     thread_should_exit[current_employee_count - 1] = true;
     // make sure the thread is not doing any work
-    sleep(EMPLOYEE_WORK_DELAY);
+    //my_pause(EMPLOYEE_WORK_DELAY);
     current_employee_count--;
 }
 

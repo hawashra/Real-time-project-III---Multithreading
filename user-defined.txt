@@ -1,17 +1,17 @@
 number of employees per production line: 5
 number of medicine types: 7
-number of production lines: 3
+number of production lines: 2
 probaility that liquid level is not within range (out of 100): 7
 probaility that liquid color does not match expected color (out of 100): 5
 probaility that medicine bottle is not properly sealed (out of 100): 5
 probaility that an incorrect label is printed on the bottle (out of 100): 1
-probaility that the plastic container is missing pill(s) (out of 100): 2
-probaility that pills in the plastic container do not  have the correct color and/or size (out of 100): 2
+probaility that the plastic container is missing pill(s) (out of 100): 5
+probaility that pills in the plastic container do not  have the correct color and/or size (out of 100): 5
 probaility that medicine expiry date is not printed clearly on the plastic container pack (out of 100): 1
 maximum number of medicine packs that can be produced for a medicine type: 20
 maximum number of bottled medicine that are out of spec: 50
 maximum number of pill-based medicine that are out of spec: 50
 maximum simulation run time (in minutes): 3
 minimum production time (for each production line, in seconds): 2
-maximum production time (for each production line, in seconds): 5
-size of unprocessed medicine queue for a production line after which we move an employee to that line: 50
+maximum production time (for each production line, in seconds): 3
+size of unprocessed medicine queue for a production line after which we move an employee to that line: 10

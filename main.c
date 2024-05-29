@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
     alarm_max_num_calls = (int) (max_simulation_run_time_minutes * 60 / QUEUE_SIZE_CHECK_INTERVAL);
 
     initialize_shared_mems_and_sems();
-    sleep(2);
+    my_pause(2);
 
     production_lines_pids = (pid_t*)malloc(num_production_lines * sizeof(pid_t));
     fork_production_lines(num_production_lines);
@@ -95,15 +95,23 @@ int main(int argc, char *argv[])
             printf(BLUE("Type %d: %d") "\n" , i, produced_counts_ptr_shm[i]);
         }
 
+        sem_wait(sem_counts);
         printf(GREEN("Valid liquid medicine produced: %d") "\n", counts_ptr_shm->valid_liquid_medicine_produced_count);
         printf(GREEN("Valid pill medicine produced: %d") "\n", counts_ptr_shm->valid_pill_medicine_produced_count);
         printf(RED("Invalid liquid medicine produced: %d") "\n", counts_ptr_shm->invalid_liquid_medicine_produced_count);
         printf(RED("Invalid pill medicine produced: %d") "\n", counts_ptr_shm->invalid_pill_medicine_produced_count);
-
         printf(BLUE("------------------------------------------------------------") "\n");
+        sem_post(sem_counts);
+
+        sem_wait(sem_queue_sizes);
+        for (int i = 0; i < num_production_lines; i++) {
+            printf(CYAN("Queue size of production line %d: %d") "\n", i, queue_sizes_ptr_shm[i]);
+        }
+        sem_post(sem_queue_sizes);
 
 
-        sleep(5);
+
+        my_pause(20);
     }
     
 
@@ -266,6 +274,12 @@ void initialize_shared_mems_and_sems() {
 
 void check_queue_sizes_handler() {
 
+     // the simulation time is up
+    if (--alarm_max_num_calls == 0) {
+        printf("Simulation time is up\n");
+        exit_handler(SIGINT);
+    }
+
     int max_queue_size = 0;
     int max_queue_size_index = 0;
 
@@ -292,17 +306,13 @@ void check_queue_sizes_handler() {
     // send a signal to the production line with the maximum queue size if it exceeds the threshold
     // (sending an employee from the least busy production line to the most busy production line)
     if (max_queue_size > threshold_unprocessed_queue_size) {
+        printf(YELLOW("moving an employee from production line %d to production line %d") "\n", min_queue_size_index, max_queue_size_index);
         kill(production_lines_pids[min_queue_size_index], SIGUSR1);
 
         // send a signal to the production line with the minimum queue size.
         kill(production_lines_pids[max_queue_size_index], SIGUSR2);
     }
 
-    // the simulation time is up
-    if (--alarm_max_num_calls == 0) {
-        printf("Simulation time is up\n")
-        exit_handler(SIGINT);
-    }
 
     alarm(QUEUE_SIZE_CHECK_INTERVAL);
 }
