@@ -1,4 +1,4 @@
-number of employees per production line: 5
+number of employees per production line: 3
 number of medicine types: 7
 number of production lines: 2
 probaility that liquid level is not within range (out of 100): 7

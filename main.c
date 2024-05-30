@@ -1,7 +1,7 @@
 #include "includes/include.h"
 #include "includes/functions.c"
 
-#define QUEUE_SIZE_CHECK_INTERVAL 20
+#define QUEUE_SIZE_CHECK_INTERVAL 30
 
 int num_employee_per_production_line;
 int num_medicine_types;
