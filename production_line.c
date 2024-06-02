@@ -12,7 +12,7 @@ pthread_t *employee_threads;
 bool* thread_should_exit; /* array of booleans to indicate if a thread should exit. Used to stop the threads when the program is terminated.
 or when we move an employee from that production line to another line. */
 
-#define EMPLOYEE_WORK_DELAY 10
+#define EMPLOYEE_WORK_DELAY 2
 
 int liquid_or_pill;
 int num_medicine_types;
@@ -55,8 +55,17 @@ void add_employee_to_production_line_handler_usr2();
 
 //signal handler for the ctrl c 
 void exit_handler(int signum) {
+
+    //we will make the thread_should_exit to true for all the threads
+    for (int i = 0; i < current_employee_count; i++){
+        thread_should_exit[i] = true;
+    }
+    printf("Exiting production line\n");
     makeMedicineQueueEmpty(medicine_queue);
+    assert(employee_threads != NULL);
     free(employee_threads);
+    assert(thread_should_exit != NULL);
+    free(thread_should_exit);
     closeSharedCounts(counts_ptr_shm);
     closeSharedProducedCounts(produced_counts_ptr_shm);
     
@@ -112,12 +121,14 @@ void* employee_routine_liquid(void* arg)
 {
 
     int employee_idx = *(int*) arg;
+    printf("Employee %d\n", employee_idx);
 
     while (1)
     {        
         // check if the thread should exit, used mainly when we move an employee from a production line to another
         if (thread_should_exit[employee_idx])
         {
+            printf("Exiting employee %d\n", employee_idx);
             pthread_exit(NULL);
         }
 
@@ -136,7 +147,7 @@ void* employee_routine_liquid(void* arg)
 
         if (medicine.liquid_level_correct && medicine.liquid_color_correct && medicine.medicine_sealed_correct && medicine.label_correct)
         {
-            printf("Medicine is correct\n");
+            printf(production_line_index%2 ? CYAN("Medicine is correct") "\n": RED("Medicine is correct") "\n");
             // increment the number of correct medicines in the shared memory
             sem_wait(sem_counts);
             counts_ptr_shm->valid_liquid_medicine_produced_count++;
@@ -144,7 +155,7 @@ void* employee_routine_liquid(void* arg)
         }
         else
         {
-            printf("Medicine is not correct\n");
+            printf(production_line_index%2 ? CYAN("Medicine is not correct") "\n": RED("Medicine is not correct") "\n");
             // increment the number of incorrect medicines in the shared memory
             sem_wait(sem_counts);
             counts_ptr_shm->invalid_liquid_medicine_produced_count++;
@@ -173,12 +184,12 @@ void* employee_routine_liquid(void* arg)
 void* employee_routine_pill(void* arg)
 {
     int employee_idx = *(int*) arg;
-
-    while (1)
-    {
+    printf("Employee %d\n", employee_idx);
+    while (1){
          // check if the thread should exit, used mainly when we move an employee from a production line to another
         if (thread_should_exit[employee_idx])
         {
+            printf("Exiting employee %d\n", employee_idx);
             pthread_exit(NULL);
         }
 
@@ -196,7 +207,7 @@ void* employee_routine_pill(void* arg)
 
         if (medicine.pill_count_correct && medicine.pill_color_size_correct && medicine.expiry_date_correct && medicine.label_correct)
         {
-            printf("Medicine is correct\n");
+            printf(production_line_index%2 ? CYAN("Medicine is correct") "\n": RED("Medicine is correct") "\n");
             // increment the number of correct medicines in the shared memory
             sem_wait(sem_counts);
             counts_ptr_shm->valid_pill_medicine_produced_count++;
@@ -204,7 +215,7 @@ void* employee_routine_pill(void* arg)
         }
         else
         {
-            printf("Medicine is not correct\n");
+            printf(production_line_index%2 ? CYAN("Medicine is not correct") "\n": RED("Medicine is not correct") "\n");
             // increment the number of incorrect medicines in the shared memory
             sem_wait(sem_counts);
             counts_ptr_shm->invalid_pill_medicine_produced_count++;
@@ -267,26 +278,27 @@ int main(int argc, char const *argv[])
     max_out_of_spec_bottled_medicine = atoi (argv[15]);
     max_out_of_spec_pill_medicine = atoi (argv[16]);
 
-    printf("Hello from production line\n");
-
-    printf("Employee count: %d\n", employee_count);
-    printf("Liquid or pill: %d\n", liquid_or_pill);
-    printf("Number of medicine types: %d\n", num_medicine_types);
-    printf("Probability liquid level correct: %d\n", prob_liquid_level_correct);
-    printf("Probability liquid color correct: %d\n", prob_liquid_color_correct);
-    printf("Probability medicine sealed correct: %d\n", prob_medicine_sealed_correct);
-    printf("Probability label correct: %d\n", prob_label_correct);
-    printf("Probability pill count correct: %d\n", prob_pill_count_correct);
-    printf("Probability color size correct: %d\n", prob_color_size_correct);
-    printf("Probability expiry date correct: %d\n", prob_expiry_date_correct);
-    printf("Production time: %d\n", production_time);
-    printf("Max packs per medicine type: %d\n", max_packs_per_medicine_type);
+    // printf("Hello from production line\n");
+    // printf("Employee count: %d\n", employee_count);
+    // printf("Liquid or pill: %d\n", liquid_or_pill);
+    // printf("Number of medicine types: %d\n", num_medicine_types);
+    // printf("Probability liquid level correct: %d\n", prob_liquid_level_correct);
+    // printf("Probability liquid color correct: %d\n", prob_liquid_color_correct);
+    // printf("Probability medicine sealed correct: %d\n", prob_medicine_sealed_correct);
+    // printf("Probability label correct: %d\n", prob_label_correct);
+    // printf("Probability pill count correct: %d\n", prob_pill_count_correct);
+    // printf("Probability color size correct: %d\n", prob_color_size_correct);
+    // printf("Probability expiry date correct: %d\n", prob_expiry_date_correct);
+    // printf("Production time: %d\n", production_time);
+    // printf("Max packs per medicine type: %d\n", max_packs_per_medicine_type);
 
 
     alarm(production_time);
     // make extra space for employee exchange
     employee_threads = (pthread_t*) malloc(employee_count *2 * sizeof(pthread_t));
     thread_should_exit = (bool*) malloc(employee_count * 2 * sizeof(bool));
+    //memset the thread_should_exit to false
+    memset(thread_should_exit, 0, employee_count * 2 * sizeof(bool));
 
 
     for (int i = 0; i < employee_count; i++)
@@ -309,7 +321,8 @@ void remove_employee_from_production_line_handler_usr1()
 {
     thread_should_exit[current_employee_count - 1] = true;
     // make sure the thread is not doing any work
-    //my_pause(EMPLOYEE_WORK_DELAY);
+    //we will cancel the last thread
+    //pthread_cancel(employee_threads[current_employee_count - 1]);
     current_employee_count--;
 }
 

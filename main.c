@@ -87,7 +87,6 @@ int main(int argc, char *argv[])
     alarm(QUEUE_SIZE_CHECK_INTERVAL);
 
     sleep(2);
-
     while (1) {
 
         printf(BLUE("-----------------Production Line Statistics-----------------") "\n");
@@ -290,7 +289,7 @@ void check_queue_sizes_handler() {
     sem_wait(sem_queue_sizes);
     for (int i = 0; i < num_production_lines; i++) {
 
-        if (queue_sizes_ptr_shm[i] > max_queue_size) {
+        if (queue_sizes_ptr_shm[i] > max_queue_size ) {
             max_queue_size = queue_sizes_ptr_shm[i];
             max_queue_size_index = i;
         }
@@ -305,7 +304,7 @@ void check_queue_sizes_handler() {
 
     // send a signal to the production line with the maximum queue size if it exceeds the threshold
     // (sending an employee from the least busy production line to the most busy production line)
-    if (max_queue_size > threshold_unprocessed_queue_size) {
+    if (max_queue_size > threshold_unprocessed_queue_size && max_queue_size != min_queue_size) {
         printf(YELLOW("moving an employee from production line %d to production line %d") "\n", min_queue_size_index, max_queue_size_index);
         kill(production_lines_pids[min_queue_size_index], SIGUSR1);
 
