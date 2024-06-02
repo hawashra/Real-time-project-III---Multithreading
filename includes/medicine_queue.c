@@ -4,6 +4,7 @@
 
 typedef struct{
     int medicine_type;
+    int liquid_or_pill;
     bool liquid_level_correct;
     bool liquid_color_correct;
     bool medicine_sealed_correct;
@@ -13,7 +14,7 @@ typedef struct{
     bool pill_count_correct;
     bool pill_expiry_date_correct;
 
-}UnprocessedMedicine;
+} UnprocessedMedicine;
 
 typedef struct MedicineNode {
     UnprocessedMedicine data;

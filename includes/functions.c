@@ -13,7 +13,7 @@
 #define PURPLE(string) "\033[1;35m" string "\x1b[0m"
 
 
-void my_pause(double seconds){
+void my_pause(double seconds) {
     struct timespec ts, rem;
     ts.tv_sec = (time_t) seconds;
     ts.tv_nsec = (long) ((seconds - ts.tv_sec) * 1e9);
@@ -33,6 +33,7 @@ int set_handler(struct sigaction *sa, void (*sa_handler1)(int), void(*sa_sigacti
 
     else {
         sa->sa_sigaction = sa_sigaction1;
+
         sa->sa_flags = SA_SIGINFO;
     }
 
@@ -44,8 +45,6 @@ int set_handler(struct sigaction *sa, void (*sa_handler1)(int), void(*sa_sigacti
 int generateRandomNumber(int min, int max) {
     return min + rand() % (max - min + 1);
 }
-
-
 
 int openSharedMemory(char* name) {
     int shm_fd = shm_open(name, O_CREAT | O_RDWR, 0666); 
@@ -81,3 +80,100 @@ void closeSharedMemory(int shm_fd, void* ptr, int size) {
     munmap(ptr, size);
     close(shm_fd);
 }
+
+struct counts* openSharedCounts() {
+    int shm_fd = openSharedMemory(SHM_COUNTS);
+
+    if (shm_fd == EXIT_FAILURE) {
+        exit(EXIT_FAILURE);
+    }
+
+    if (ftruncateSharedMemory(shm_fd, SHM_SIZE_COUNTS) == EXIT_FAILURE) {
+        exit(EXIT_FAILURE);
+    }
+
+    struct counts* counts_ptr_shm = (struct counts*) mapSharedMemory(shm_fd, SHM_SIZE_COUNTS);
+    if (counts_ptr_shm == NULL) {
+        exit(EXIT_FAILURE);
+    }
+
+    return counts_ptr_shm;
+}
+
+void closeSharedCounts(struct counts* counts_ptr_shm) {
+    int fd = shm_open(SHM_COUNTS, O_RDWR, 0666);
+    closeSharedMemory(fd, counts_ptr_shm, sizeof(struct counts));
+}
+
+int* openSharedProducedCounts() {
+
+    int shm_fd = openSharedMemory(SHM_PRODUCED_COUNTS);
+
+    if (shm_fd == EXIT_FAILURE) {
+        exit(EXIT_FAILURE);
+    }
+
+    if (ftruncateSharedMemory(shm_fd, SHM_SIZE_COUNTS) == EXIT_FAILURE) {
+        exit(EXIT_FAILURE);
+    }
+
+    int* produced_counts_ptr_shm = (int*) mapSharedMemory(shm_fd, SHM_SIZE_COUNTS);
+    if (produced_counts_ptr_shm == NULL) {
+        exit(EXIT_FAILURE);
+    }
+
+    return produced_counts_ptr_shm;
+}
+
+void closeSharedProducedCounts(int* produced_counts_ptr_shm) {
+    int fd = shm_open(SHM_PRODUCED_COUNTS, O_RDWR, 0666);
+    closeSharedMemory(fd, produced_counts_ptr_shm, SHM_SIZE_COUNTS);
+}
+
+int* openSharedQueueSizes() {
+
+    int shm_fd = openSharedMemory(SHM_QUEUE_SIZES);
+
+    if (shm_fd == EXIT_FAILURE) {
+        exit(EXIT_FAILURE);
+    }
+
+    if (ftruncateSharedMemory(shm_fd, SHM_SIZE_QUEUE_SIZES) == EXIT_FAILURE) {
+        exit(EXIT_FAILURE);
+    }
+
+    int* queue_sizes_ptr_shm = (int*) mapSharedMemory(shm_fd, SHM_SIZE_QUEUE_SIZES);
+    if (queue_sizes_ptr_shm == NULL) {
+        exit(EXIT_FAILURE);
+    }
+
+    return queue_sizes_ptr_shm;
+}
+
+void closeSharedQueueSizes(int* queue_sizes_ptr_shm) {
+    int fd = shm_open(SHM_QUEUE_SIZES, O_RDWR, 0666);
+    closeSharedMemory(fd, queue_sizes_ptr_shm, SHM_SIZE_QUEUE_SIZES);
+}
+
+
+// Function to add a new thread to the array
+pthread_t* add_thread(pthread_t* array, int* size, void* (*start_routine) (void *)) {
+    pthread_t new_thread;
+    if (pthread_create(&new_thread, NULL, start_routine, NULL) != 0) {
+        perror("Failed to create thread");
+        exit(EXIT_FAILURE);
+    }
+
+    pthread_t* temp = realloc(array, (*size + 1) * sizeof(pthread_t));
+    if (!temp) {
+        perror("Failed to allocate memory");
+        exit(EXIT_FAILURE);
+    }
+    array = temp;
+    array[*size] = new_thread;
+    (*size)++;
+    return array;
+}
+
+
+

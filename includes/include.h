@@ -23,6 +23,15 @@
 #include <assert.h>
 #endif
 
+struct counts {
+
+    int valid_liquid_medicine_produced_count;
+    int valid_pill_medicine_produced_count;
+    int invalid_liquid_medicine_produced_count;
+    int invalid_pill_medicine_produced_count;
+};
+
+
 //some enums
 // enum typeOfWorker{C,D,S};
 /// @brief Enum for the state of the worker
@@ -32,3 +41,13 @@
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
 
+#define SHM_COUNTS "/shm_counts"
+#define SHM_PRODUCED_COUNTS "/shm_produced_counts"
+#define SHM_QUEUE_SIZES "/shm_queue_sizes"
+
+#define SEM_COUNTS "/sem_counts"
+#define SEM_PRODUCED_COUNTS "/sem_produced_counts"
+#define SEM_QUEUE_SIZES "/sem_queue_sizes"
+
+#define SHM_SIZE_COUNTS 32
+#define SHM_SIZE_QUEUE_SIZES 32
