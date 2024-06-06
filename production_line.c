@@ -34,6 +34,7 @@ int max_out_of_spec_pill_medicine;
 struct counts* counts_ptr_shm;
 int* produced_counts_ptr_shm;
 int* queue_sizes_ptr_shm;
+int* num_employees_ptr_shm;
 
 
 //define the queue 
@@ -43,6 +44,7 @@ sem_t *sem_counts;
 sem_t *sem_produced_counts;
 sem_t* sem_valid_invalid_counts;
 sem_t* sem_queue_sizes;
+sem_t* sem_num_employees;
 
 
 //define the mutex
@@ -236,10 +238,12 @@ int main(int argc, char const *argv[])
     counts_ptr_shm = openSharedCounts();
     produced_counts_ptr_shm = openSharedProducedCounts();
     queue_sizes_ptr_shm = openSharedQueueSizes();
+    num_employees_ptr_shm = openSharedNumEmployees();
     // open the semaphores
     sem_counts = sem_open(SEM_COUNTS, 0);
     sem_produced_counts = sem_open(SEM_PRODUCED_COUNTS, 0);
     sem_queue_sizes = sem_open(SEM_QUEUE_SIZES, 0);
+    sem_num_employees = sem_open(SEM_NUM_EMPLOYEES, 0);
 
     set_handler(&sa_int, exit_handler, NULL, SIGINT, 0);
     set_handler(&sa_alrm, produce_medicine, NULL, SIGALRM, 0);
@@ -311,6 +315,11 @@ void remove_employee_from_production_line_handler_usr1()
     // make sure the thread is not doing any work
     //my_pause(EMPLOYEE_WORK_DELAY);
     current_employee_count--;
+
+    // update the number of employees in the shared memory
+    sem_wait(sem_num_employees);
+    num_employees_ptr_shm[production_line_index] = current_employee_count;
+    sem_post(sem_num_employees);
 }
 
 void add_employee_to_production_line_handler_usr2()
@@ -321,5 +330,11 @@ void add_employee_to_production_line_handler_usr2()
     pthread_create(&employee_threads[current_employee_count], NULL, liquid_or_pill ? employee_routine_liquid : employee_routine_pill,
     (void*) idx);
     current_employee_count++;
+    
+    // update the number of employees in the shared memory
+    sem_wait(sem_num_employees);
+    num_employees_ptr_shm[production_line_index] = current_employee_count;
+    sem_post(sem_num_employees);
+
     pthread_join(employee_threads[current_employee_count], NULL);
 }

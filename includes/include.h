@@ -44,10 +44,12 @@ struct counts {
 #define SHM_COUNTS "/shm_counts"
 #define SHM_PRODUCED_COUNTS "/shm_produced_counts"
 #define SHM_QUEUE_SIZES "/shm_queue_sizes"
+#define SHM_NUM_EMPLOYEES "/shm_num_employees"
 
 #define SEM_COUNTS "/sem_counts"
 #define SEM_PRODUCED_COUNTS "/sem_produced_counts"
 #define SEM_QUEUE_SIZES "/sem_queue_sizes"
+#define SEM_NUM_EMPLOYEES "/sem_num_employees"
 
 #define SHM_SIZE_COUNTS 32
 #define SHM_SIZE_QUEUE_SIZES 32
