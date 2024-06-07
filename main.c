@@ -353,7 +353,7 @@ void check_queue_sizes_handler() {
     // (sending an employee from the least busy production line to the most busy production line)
     // safty check: the production line with the maximum queue size should have less than 2*num_employee_per_production_line employees
     // and the production line with the minimum queue size should have at least two employee
-    if (max_queue_size > threshold_unprocessed_queue_size && num_employees_ptr_shm[min_queue_size_index] > 1 && num_employees_ptr_shm[max_queue_size_index] < 2*num_employee_per_production_line) {
+    if (max_queue_size > threshold_unprocessed_queue_size && num_employees_ptr_shm[min_queue_size_index] > 1 && num_employees_ptr_shm[max_queue_size_index] < 2*num_employee_per_production_line && max_queue_size_index != min_queue_size_index) {
         printf(YELLOW("moving an employee from production line %d to production line %d") "\n", min_queue_size_index, max_queue_size_index);
         kill(production_lines_pids[min_queue_size_index], SIGUSR1);
 

@@ -179,10 +179,10 @@ void* employee_routine_pill(void* arg)
     while (1)
     {
          // check if the thread should exit, used mainly when we move an employee from a production line to another
-        if (thread_should_exit[employee_idx])
-        {
-            pthread_exit(NULL);
-        }
+        // if (thread_should_exit[employee_idx])
+        // {
+        //     pthread_exit(NULL);
+        // }
 
         pthread_mutex_lock(&medicine_queue_mutex);
         while (medicine_queue->size == 0)
@@ -311,7 +311,7 @@ int main(int argc, char const *argv[])
 
 void remove_employee_from_production_line_handler_usr1()
 {
-    thread_should_exit[current_employee_count - 1] = true;
+    //thread_should_exit[current_employee_count - 1] = true;
     // make sure the thread is not doing any work
     //my_pause(EMPLOYEE_WORK_DELAY);
     current_employee_count--;
@@ -324,7 +324,7 @@ void remove_employee_from_production_line_handler_usr1()
 
 void add_employee_to_production_line_handler_usr2()
 {
-    thread_should_exit[current_employee_count] = false;
+    //thread_should_exit[current_employee_count] = false;
     int *idx = (int*) malloc(sizeof(int));
     *idx = current_employee_count;
     pthread_create(&employee_threads[current_employee_count], NULL, liquid_or_pill ? employee_routine_liquid : employee_routine_pill,
