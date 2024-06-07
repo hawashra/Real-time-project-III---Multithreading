@@ -120,11 +120,10 @@ void produce_medicine(int signum) {
 }
 
 void* employee_routine_liquid(void* arg)
-{
+{   
 
+    printf("hello created\n");
     int employee_idx = *(int*) arg;
-    printf("Employee %d\n", employee_idx);
-
     while (1)
     {        
         // check if the thread should exit, used mainly when we move an employee from a production line to another
@@ -185,6 +184,7 @@ void* employee_routine_liquid(void* arg)
 
 void* employee_routine_pill(void* arg)
 {
+    printf("hello created\n");
     int employee_idx = *(int*) arg;
     printf("Employee %d\n", employee_idx);
     while (1){
@@ -313,6 +313,7 @@ int main(int argc, char const *argv[])
         (void*) idx);
     }
 
+
     for (int i = 0; i < employee_count; i++)
     {
         pthread_join(employee_threads[i], NULL);
@@ -333,7 +334,13 @@ void remove_employee_from_production_line_handler_usr1()
     sem_wait(sem_num_employees);
     num_employees_ptr_shm[production_line_index] = current_employee_count;
     sem_post(sem_num_employees);
-}
+    //we will remove the employee
+    int ret = pthread_cancel(employee_threads[current_employee_count - 1]);
+
+    if (ret != 0) {
+        perror("wasn't able to cancel the thread\n");
+        }
+    }
 
 void add_employee_to_production_line_handler_usr2()
 {
@@ -349,5 +356,5 @@ void add_employee_to_production_line_handler_usr2()
     num_employees_ptr_shm[production_line_index] = current_employee_count;
     sem_post(sem_num_employees);
 
-    pthread_join(employee_threads[current_employee_count], NULL);
+    //pthread_join(employee_threads[current_employee_count], NULL);
 }

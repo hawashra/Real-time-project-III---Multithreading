@@ -30,7 +30,7 @@ sem_t *sem_counts;
 sem_t *sem_produced_counts;
 sem_t *sem_valid_invalid_counts;
 sem_t* sem_queue_sizes;
-sme_t* sem_num_employees;
+sem_t* sem_num_employees;
 
 int alarm_max_num_calls = 0;
 
@@ -319,9 +319,9 @@ void check_queue_sizes_handler() {
     if (max_queue_size > threshold_unprocessed_queue_size && num_employees_ptr_shm[min_queue_size_index] > 1 && num_employees_ptr_shm[max_queue_size_index] < 2*num_employee_per_production_line) {
         printf(YELLOW("moving an employee from production line %d to production line %d") "\n", min_queue_size_index, max_queue_size_index);
         kill(production_lines_pids[min_queue_size_index], SIGUSR1);
-
         // send a signal to the production line with the minimum queue size.
         kill(production_lines_pids[max_queue_size_index], SIGUSR2);
+        printf("%d ---> %d",num_employees_ptr_shm[min_queue_size_index], num_employees_ptr_shm[max_queue_size_index]);
     }
 
 
