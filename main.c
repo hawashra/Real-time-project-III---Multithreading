@@ -24,11 +24,13 @@ int threshold_unprocessed_queue_size;
 struct counts* counts_ptr_shm;
 int* produced_counts_ptr_shm;
 int* queue_sizes_ptr_shm;
+int* num_employees_ptr_shm;
 
 sem_t *sem_counts;
 sem_t *sem_produced_counts;
 sem_t *sem_valid_invalid_counts;
 sem_t* sem_queue_sizes;
+sme_t* sem_num_employees;
 
 int alarm_max_num_calls = 0;
 
@@ -52,12 +54,14 @@ void exit_handler(int signum){
     closeSharedCounts(counts_ptr_shm);
     closeSharedProducedCounts(produced_counts_ptr_shm);
     closeSharedQueueSizes(queue_sizes_ptr_shm);
+    closeSharedNumEmployees(num_employees_ptr_shm);
     sem_close(sem_counts);
     sem_close(sem_produced_counts);
     sem_close(sem_queue_sizes);
     sem_unlink(SEM_COUNTS);
     sem_unlink(SEM_PRODUCED_COUNTS);
     sem_unlink(SEM_QUEUE_SIZES);
+    sem_unlink(SEM_NUM_EMPLOYEES);
 
     exit(0);
 }
@@ -265,9 +269,15 @@ void initialize_shared_mems_and_sems() {
         queue_sizes_ptr_shm[i] = 0;
     }
 
+    num_employees_ptr_shm = openSharedNumEmployees();
+    for (int i = 0; i < num_production_lines; i++) {
+        num_employees_ptr_shm[i] = num_employee_per_production_line;
+    }
+
     sem_counts = sem_open(SEM_COUNTS, O_CREAT, 0666, 1);
     sem_produced_counts = sem_open(SEM_PRODUCED_COUNTS, O_CREAT, 0666, 1);
     sem_queue_sizes = sem_open(SEM_QUEUE_SIZES, O_CREAT, 0666, 1);
+    sem_num_employees = sem_open(SEM_NUM_EMPLOYEES, O_CREAT, 0666, 1);
 
 }
 
@@ -304,7 +314,9 @@ void check_queue_sizes_handler() {
 
     // send a signal to the production line with the maximum queue size if it exceeds the threshold
     // (sending an employee from the least busy production line to the most busy production line)
-    if (max_queue_size > threshold_unprocessed_queue_size && max_queue_size != min_queue_size) {
+    // safty check: the production line with the maximum queue size should have less than 2*num_employee_per_production_line employees
+    // and the production line with the minimum queue size should have at least two employee
+    if (max_queue_size > threshold_unprocessed_queue_size && num_employees_ptr_shm[min_queue_size_index] > 1 && num_employees_ptr_shm[max_queue_size_index] < 2*num_employee_per_production_line) {
         printf(YELLOW("moving an employee from production line %d to production line %d") "\n", min_queue_size_index, max_queue_size_index);
         kill(production_lines_pids[min_queue_size_index], SIGUSR1);
 

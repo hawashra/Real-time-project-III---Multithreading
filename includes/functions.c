@@ -155,6 +155,31 @@ void closeSharedQueueSizes(int* queue_sizes_ptr_shm) {
     closeSharedMemory(fd, queue_sizes_ptr_shm, SHM_SIZE_QUEUE_SIZES);
 }
 
+int* openSharedNumEmployees() {
+
+    int shm_fd = openSharedMemory(SHM_NUM_EMPLOYEES);
+
+    if (shm_fd == EXIT_FAILURE) {
+        exit(EXIT_FAILURE);
+    }
+
+    if (ftruncateSharedMemory(shm_fd, sizeof(int)) == EXIT_FAILURE) {
+        exit(EXIT_FAILURE);
+    }
+
+    int* num_employees_ptr_shm = (int*) mapSharedMemory(shm_fd, sizeof(int));
+    if (num_employees_ptr_shm == NULL) {
+        exit(EXIT_FAILURE);
+    }
+
+    return num_employees_ptr_shm;
+}
+
+void closeSharedNumEmployees(int* num_employees_ptr_shm) {
+    int fd = shm_open(SHM_NUM_EMPLOYEES, O_RDWR, 0666);
+    closeSharedMemory(fd, num_employees_ptr_shm, sizeof(int));
+}
+
 
 // Function to add a new thread to the array
 pthread_t* add_thread(pthread_t* array, int* size, void* (*start_routine) (void *)) {
