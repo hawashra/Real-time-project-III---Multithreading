@@ -271,20 +271,20 @@ int main(int argc, char const *argv[])
     max_out_of_spec_bottled_medicine = atoi (argv[15]);
     max_out_of_spec_pill_medicine = atoi (argv[16]);
 
-    printf("Hello from production line\n");
+    // printf("Hello from production line\n");
 
-    printf("Employee count: %d\n", employee_count);
+    // printf("Employee count: %d\n", employee_count);
     printf("Liquid or pill: %d\n", liquid_or_pill);
-    printf("Number of medicine types: %d\n", num_medicine_types);
-    printf("Probability liquid level correct: %d\n", prob_liquid_level_correct);
-    printf("Probability liquid color correct: %d\n", prob_liquid_color_correct);
-    printf("Probability medicine sealed correct: %d\n", prob_medicine_sealed_correct);
-    printf("Probability label correct: %d\n", prob_label_correct);
-    printf("Probability pill count correct: %d\n", prob_pill_count_correct);
-    printf("Probability color size correct: %d\n", prob_color_size_correct);
-    printf("Probability expiry date correct: %d\n", prob_expiry_date_correct);
-    printf("Production time: %d\n", production_time);
-    printf("Max packs per medicine type: %d\n", max_packs_per_medicine_type);
+    // printf("Number of medicine types: %d\n", num_medicine_types);
+    // printf("Probability liquid level correct: %d\n", prob_liquid_level_correct);
+    // printf("Probability liquid color correct: %d\n", prob_liquid_color_correct);
+    // printf("Probability medicine sealed correct: %d\n", prob_medicine_sealed_correct);
+    // printf("Probability label correct: %d\n", prob_label_correct);
+    // printf("Probability pill count correct: %d\n", prob_pill_count_correct);
+    // printf("Probability color size correct: %d\n", prob_color_size_correct);
+    // printf("Probability expiry date correct: %d\n", prob_expiry_date_correct);
+    // printf("Production time: %d\n", production_time);
+    // printf("Max packs per medicine type: %d\n", max_packs_per_medicine_type);
 
 
     alarm(production_time);
@@ -318,7 +318,7 @@ void remove_employee_from_production_line_handler_usr1()
 
     // update the number of employees in the shared memory
     sem_wait(sem_num_employees);
-    num_employees_ptr_shm[production_line_index] = current_employee_count;
+    num_employees_ptr_shm[production_line_index]--;
     sem_post(sem_num_employees);
 }
 
@@ -333,7 +333,7 @@ void add_employee_to_production_line_handler_usr2()
     
     // update the number of employees in the shared memory
     sem_wait(sem_num_employees);
-    num_employees_ptr_shm[production_line_index] = current_employee_count;
+    num_employees_ptr_shm[production_line_index]++;
     sem_post(sem_num_employees);
 
     pthread_join(employee_threads[current_employee_count], NULL);

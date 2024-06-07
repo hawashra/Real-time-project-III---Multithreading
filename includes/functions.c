@@ -23,7 +23,6 @@ void my_pause(double seconds) {
     }
 }
 
-
 // using mode we choose either sa_handler or sa_sigaction
 int set_handler(struct sigaction *sa, void (*sa_handler1)(int), void(*sa_sigaction1)(int, siginfo_t*, void* )  , int signum, int mode) {
     if (mode == 0) {
@@ -163,11 +162,11 @@ int* openSharedNumEmployees() {
         exit(EXIT_FAILURE);
     }
 
-    if (ftruncateSharedMemory(shm_fd, sizeof(int)) == EXIT_FAILURE) {
+    if (ftruncateSharedMemory(shm_fd, SHM_SIZE_NUM_EMPLOYEES) == EXIT_FAILURE) {
         exit(EXIT_FAILURE);
     }
 
-    int* num_employees_ptr_shm = (int*) mapSharedMemory(shm_fd, sizeof(int));
+    int* num_employees_ptr_shm = (int*) mapSharedMemory(shm_fd, SHM_SIZE_NUM_EMPLOYEES);
     if (num_employees_ptr_shm == NULL) {
         exit(EXIT_FAILURE);
     }
@@ -177,7 +176,7 @@ int* openSharedNumEmployees() {
 
 void closeSharedNumEmployees(int* num_employees_ptr_shm) {
     int fd = shm_open(SHM_NUM_EMPLOYEES, O_RDWR, 0666);
-    closeSharedMemory(fd, num_employees_ptr_shm, sizeof(int));
+    closeSharedMemory(fd, num_employees_ptr_shm, SHM_SIZE_NUM_EMPLOYEES);
 }
 
 

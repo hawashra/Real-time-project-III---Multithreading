@@ -30,7 +30,9 @@ sem_t *sem_counts;
 sem_t *sem_produced_counts;
 sem_t *sem_valid_invalid_counts;
 sem_t* sem_queue_sizes;
-sme_t* sem_num_employees;
+sem_t* sem_num_employees;
+
+char* production_lines_types; // will be a binary string. 0 is liquid, 1 is pill
 
 int alarm_max_num_calls = 0;
 
@@ -41,6 +43,8 @@ void initialize_shared_mems_and_sems();
 void check_queue_sizes_handler();
 pid_t *production_lines_pids;
 
+pid_t openGL_pid;
+
 
 void exit_handler(int signum){
     printf(" is pressed\n");
@@ -48,6 +52,9 @@ void exit_handler(int signum){
     for (int i = 0; i < num_production_lines; i++) {
         kill(production_lines_pids[i], SIGINT);
     }
+
+    kill(openGL_pid, SIGINT);
+
 
     // free all dynamically allocated memory, close all semaphores and shared memory
     free(production_lines_pids);
@@ -73,6 +80,8 @@ struct sigaction sa_int, sa_alrm;
 int main(int argc, char *argv[])
 {
 
+    production_lines_types = (char*)malloc(num_production_lines * sizeof(char) + 2);
+
     srand(time(NULL));
     set_handler(&sa_int,exit_handler,NULL,SIGINT,0);
 
@@ -88,9 +97,34 @@ int main(int argc, char *argv[])
     fork_production_lines(num_production_lines);
 
     set_handler(&sa_alrm, check_queue_sizes_handler, NULL, SIGALRM, 0);
+
+    sleep(5);
+
+    char numProductionLinesArg[7];
+    sprintf(numProductionLinesArg, "%d", num_production_lines);
+
+    char numMedTypesArg[7];
+    sprintf(numMedTypesArg, "%d", num_medicine_types);
+
+    // fork openGL process
+    pid_t pid;
+    pid = fork();
+
+    assert(pid >= 0);
+
+    if (pid == 0) {
+        printf(RED("pid: %d") "\n", pid);
+        execlp("./OpenGL", "./OpenGL",numProductionLinesArg, numMedTypesArg, production_lines_types, NULL);
+        perror("Error: execlp failed\n");
+        exit(0);
+    } else {
+        // parent process
+        openGL_pid = pid;
+    }
+
+
     alarm(QUEUE_SIZE_CHECK_INTERVAL);
 
-    sleep(2);
 
     while (1) {
 
@@ -193,6 +227,8 @@ void fork_production_lines(int num) {
     for (int i = 0; i  < num; i++) {
 
         int liquid_or_pill = generateRandomNumber(0, 1);// 0 is liquid, 1 is pill
+        production_lines_types[i] = (liquid_or_pill == 0) ? '0' : '1';
+
         int production_time = generateRandomNumber(min_production_time, max_production_time);
         //arguments to be passed to the production line
         char employee_count_arg[5];

@@ -53,3 +53,4 @@ struct counts {
 
 #define SHM_SIZE_COUNTS 32
 #define SHM_SIZE_QUEUE_SIZES 32
+#define SHM_SIZE_NUM_EMPLOYEES 32
