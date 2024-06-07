@@ -12,7 +12,7 @@ pthread_t *employee_threads;
 bool* thread_should_exit; /* array of booleans to indicate if a thread should exit. Used to stop the threads when the program is terminated.
 or when we move an employee from that production line to another line. */
 
-#define EMPLOYEE_WORK_DELAY 10
+#define EMPLOYEE_WORK_DELAY 4
 
 int liquid_or_pill;
 int num_medicine_types;
@@ -57,11 +57,26 @@ void add_employee_to_production_line_handler_usr2();
 
 //signal handler for the ctrl c 
 void exit_handler(int signum) {
+
     makeMedicineQueueEmpty(medicine_queue);
-    free(employee_threads);
     closeSharedCounts(counts_ptr_shm);
     closeSharedProducedCounts(produced_counts_ptr_shm);
-    
+    closeSharedQueueSizes(queue_sizes_ptr_shm);
+    closeSharedNumEmployees(num_employees_ptr_shm);
+
+    sem_close(sem_counts);
+    sem_close(sem_produced_counts);
+    sem_close(sem_queue_sizes);
+    sem_close(sem_num_employees);
+    sem_unlink(SEM_COUNTS);
+    sem_unlink(SEM_PRODUCED_COUNTS);
+    sem_unlink(SEM_QUEUE_SIZES);
+    sem_unlink(SEM_NUM_EMPLOYEES);
+
+    // deallocate the dynamic memory
+    free(thread_should_exit);
+    free(employee_threads);
+
     exit(0);
 }
 
@@ -179,10 +194,10 @@ void* employee_routine_pill(void* arg)
     while (1)
     {
          // check if the thread should exit, used mainly when we move an employee from a production line to another
-        // if (thread_should_exit[employee_idx])
-        // {
-        //     pthread_exit(NULL);
-        // }
+        if (thread_should_exit[employee_idx])
+        {
+            pthread_exit(NULL);
+        }
 
         pthread_mutex_lock(&medicine_queue_mutex);
         while (medicine_queue->size == 0)
@@ -271,6 +286,8 @@ int main(int argc, char const *argv[])
     max_out_of_spec_bottled_medicine = atoi (argv[15]);
     max_out_of_spec_pill_medicine = atoi (argv[16]);
 
+    current_employee_count = employee_count;
+
     // printf("Hello from production line\n");
 
     // printf("Employee count: %d\n", employee_count);
@@ -311,7 +328,7 @@ int main(int argc, char const *argv[])
 
 void remove_employee_from_production_line_handler_usr1()
 {
-    //thread_should_exit[current_employee_count - 1] = true;
+    thread_should_exit[current_employee_count - 1] = true;
     // make sure the thread is not doing any work
     //my_pause(EMPLOYEE_WORK_DELAY);
     current_employee_count--;
@@ -320,11 +337,25 @@ void remove_employee_from_production_line_handler_usr1()
     sem_wait(sem_num_employees);
     num_employees_ptr_shm[production_line_index]--;
     sem_post(sem_num_employees);
+
+    //we will remove the employee
+    // int ret = pthread_cancel(employee_threads[current_employee_count - 1]);
+
+    // if (ret != 0) {
+    //     perror("wasn't able to cancel the thread\n");
+    // }
+
+    // void* res;
+    // ret = pthread_join(employee_threads[current_employee_count - 1], &res);
+    // if (ret != 0) {
+    //     perror("wasn't able to join the cancelled thread\n");
+    // }
+
 }
 
 void add_employee_to_production_line_handler_usr2()
 {
-    //thread_should_exit[current_employee_count] = false;
+    thread_should_exit[current_employee_count] = false;
     int *idx = (int*) malloc(sizeof(int));
     *idx = current_employee_count;
     pthread_create(&employee_threads[current_employee_count], NULL, liquid_or_pill ? employee_routine_liquid : employee_routine_pill,

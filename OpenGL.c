@@ -163,17 +163,17 @@ void display()
         writeIntegerAtPosition(produced_counts_ptr_shm[i], 200, lowerSectionHeight - 70 - 20 * i, 0, 0, 0);
     }
 
-    // Valid/Invalid Pills
+    // Valid/Invalid Pills  
     drawText_size(300, lowerSectionHeight - 40, "Valid Pills: ", 15, 0, 0, 0);
-    writeIntegerAtPosition(counts_ptr_shm->valid_pill_medicine_produced_count, 450, lowerSectionHeight - 40, 0, 0, 0); 
+    writeIntegerAtPosition(counts_ptr_shm->valid_liquid_medicine_produced_count, 450, lowerSectionHeight - 40, 0, 0, 0); 
     drawText_size(300, lowerSectionHeight - 70, "Invalid Pills: ", 15, 0, 0, 0);
-    writeIntegerAtPosition(counts_ptr_shm->invalid_pill_medicine_produced_count, 450, lowerSectionHeight - 70, 0, 0, 0); 
+    writeIntegerAtPosition(counts_ptr_shm->invalid_liquid_medicine_produced_count, 450, lowerSectionHeight - 70, 0, 0, 0); 
 
     // Valid/Invalid Liquids
     drawText_size(300, lowerSectionHeight - 100, "Valid Liquids: ", 15, 0, 0, 0);
-    writeIntegerAtPosition(counts_ptr_shm->valid_liquid_medicine_produced_count, 450, lowerSectionHeight - 100, 0, 0, 0); 
+    writeIntegerAtPosition(counts_ptr_shm->valid_pill_medicine_produced_count, 450, lowerSectionHeight - 100, 0, 0, 0); 
     drawText_size(300, lowerSectionHeight - 130, "Invalid Liquids: ", 15, 0, 0, 0);
-    writeIntegerAtPosition(counts_ptr_shm->invalid_liquid_medicine_produced_count, 450, lowerSectionHeight - 130, 0, 0, 0); 
+    writeIntegerAtPosition(counts_ptr_shm->invalid_pill_medicine_produced_count, 450, lowerSectionHeight - 130, 0, 0, 0); 
 
     glFlush();
 }

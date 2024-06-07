@@ -12,6 +12,6 @@ maximum number of medicine packs that can be produced for a medicine type: 50
 maximum number of bottled medicine that are out of spec: 50
 maximum number of pill-based medicine that are out of spec: 50
 maximum simulation run time (in minutes): 3
-minimum production time (for each production line, in seconds): 2
-maximum production time (for each production line, in seconds): 5
+minimum production time (for each production line, in seconds): 1
+maximum production time (for each production line, in seconds): 3
 size of unprocessed medicine queue for a production line after which we move an employee to that line: 10
